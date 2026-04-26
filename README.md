@@ -3,6 +3,9 @@
 A minimalist VU meter plugin built with the same JUCE + WebView (Vite / React / MUI) stack as the sister plugins (ZeroComp / ZeroLimit / ZeroEQ / TestTone). The audio path is fully pass-through — TinyVU only observes the signal and shows it on a classic analog-style VU meter that can be shrunk to almost any size.
 
 Supported formats: **VST3 / AU / AAX / Standalone**, plus a **WebAssembly browser demo**.
+https://tinyvu-demo.web.app/
+
+<img width="612" height="468" alt="image" src="https://github.com/user-attachments/assets/34d0a9dc-639e-484d-8336-3b30b58c9519" />
 
 ## Features
 
