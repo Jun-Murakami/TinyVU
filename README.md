@@ -5,7 +5,7 @@ A minimalist VU meter plugin built with the same JUCE + WebView (Vite / React / 
 Supported formats: **VST3 / AU / AAX / Standalone** (Windows / macOS) and **VST3 / LV2 / CLAP / Standalone** (Linux), plus a **WebAssembly browser demo**.  
 https://tinyvu-demo.web.app/
 
-<img width="612" height="468" alt="image" src="https://github.com/user-attachments/assets/34d0a9dc-639e-484d-8336-3b30b58c9519" />
+<img width="669" height="509" alt="sc_tinyvu" src="https://github.com/user-attachments/assets/75727fb2-eae9-42e9-b9c8-e0ea84ddc7f7" />
 
 ## Features
 
