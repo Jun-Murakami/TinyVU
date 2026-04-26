@@ -595,3 +595,61 @@ events:
         
       exitCode: 0
 ...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "JUCE/extras/Build/CMake/JUCECheckAtomic.cmake:73 (try_compile)"
+      - "JUCE/extras/Build/CMake/JUCECheckAtomic.cmake:128 (_juce_create_atomic_target)"
+      - "JUCE/extras/Build/CMake/JUCEModuleSupport.cmake:57 (include)"
+      - "JUCE/CMakeLists.txt:50 (include)"
+    directories:
+      source: "/mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/check_atomic_dir_s0zsaFs4zXfehJmx/CMakeFiles/CMakeTmp"
+      binary: "/mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/check_atomic_dir_s0zsaFs4zXfehJmx/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "compile_result"
+      cached: true
+      stdout: |
+        Change Dir: '/mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/check_atomic_dir_s0zsaFs4zXfehJmx/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): /usr/bin/ninja -v cmTC_eb9ef
+        [1/2] /usr/bin/c++   -std=c++17 -o CMakeFiles/cmTC_eb9ef.dir/check_atomic_y8eff72lWjLyl4cm.cpp.o -c /mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/check_atomic_y8eff72lWjLyl4cm.cpp
+        [2/2] : && /usr/bin/c++   CMakeFiles/cmTC_eb9ef.dir/check_atomic_y8eff72lWjLyl4cm.cpp.o -o cmTC_eb9ef   && :
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "JUCE/extras/Build/CMake/JUCECheckAtomic.cmake:73 (try_compile)"
+      - "JUCE/extras/Build/CMake/JUCECheckAtomic.cmake:128 (_juce_create_atomic_target)"
+      - "JUCE/extras/Build/CMake/JUCEModuleSupport.cmake:57 (include)"
+      - "JUCE/CMakeLists.txt:50 (include)"
+    directories:
+      source: "/mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/check_atomic_dir_oeO2P91RahWI33ov/CMakeFiles/CMakeTmp"
+      binary: "/mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/check_atomic_dir_oeO2P91RahWI33ov/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "compile_result"
+      cached: true
+      stdout: |
+        Change Dir: '/mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/check_atomic_dir_oeO2P91RahWI33ov/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): /usr/bin/ninja -v cmTC_d0820
+        [1/2] /usr/bin/c++   -std=c++17 -o CMakeFiles/cmTC_d0820.dir/check_atomic_R59iZJ80cNnd7xG6.cpp.o -c /mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/check_atomic_R59iZJ80cNnd7xG6.cpp
+        [2/2] : && /usr/bin/c++   CMakeFiles/cmTC_d0820.dir/check_atomic_R59iZJ80cNnd7xG6.cpp.o -o cmTC_d0820   && :
+        
+      exitCode: 0
+...

@@ -5,7 +5,7 @@ cmake_policy(SET CMP0009 NEW)
 # WEBVIEW_ASSETS at plugin/CMakeLists.txt:183 (file)
 file(GLOB_RECURSE NEW_GLOB LIST_DIRECTORIES false "/mnt/d/Synching/code/JUCE/TinyVU/plugin/ui/public/**/*")
 set(OLD_GLOB
-  "/mnt/d/Synching/code/JUCE/TinyVU/plugin/ui/public/assets/index-DEFKIhOh.js"
+  "/mnt/d/Synching/code/JUCE/TinyVU/plugin/ui/public/assets/index-CsPG3FwM.js"
   "/mnt/d/Synching/code/JUCE/TinyVU/plugin/ui/public/assets/index-DyUccssT.css"
   "/mnt/d/Synching/code/JUCE/TinyVU/plugin/ui/public/js/juce/check_native_interop.js"
   "/mnt/d/Synching/code/JUCE/TinyVU/plugin/ui/public/js/juce/index.js"

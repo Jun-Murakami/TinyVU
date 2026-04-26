@@ -1,13 +1,14 @@
 # ninja log v5
-35	24557	0	/mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/tools/CMakeFiles/cmake.verify_globs	c285c2b88fc5687a
+39	24290	0	/mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/tools/CMakeFiles/cmake.verify_globs	c285c2b88fc5687a
 24670	24778	1777185071416843500	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_core/juce_core_CompilationTime.cpp.o	5779357dbf234d62
+24637	31043	1777185077963188400	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/juce_build_tools/juce_build_tools.cpp.o	2fca2d3c31da439c
 24658	25503	1777185072189073100	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_graphics/juce_graphics_Sheenbidi.c.o	28c84f72bd146e74
+24660	31514	1777185078499215700	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_events/juce_events.cpp.o	ad1bf9cdc65595df
 24672	29361	1777185076233920000	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_data_structures/juce_data_structures.cpp.o	e870a733231ae220
 24634	30980	1777185077955947700	extras/Build/juceaide/CMakeFiles/juceaide.dir/Main.cpp.o	dbc4c8c803f6eb95
-24637	31043	1777185077963188400	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/juce_build_tools/juce_build_tools.cpp.o	2fca2d3c31da439c
-24660	31514	1777185078499215700	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_events/juce_events.cpp.o	ad1bf9cdc65595df
+58587	101326	1777185148529871000	extras/Build/juceaide/juceaide_artefacts/Custom/juceaide	50b24f38fcd17fb4
 24669	35079	1777185082300388600	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_core/juce_core.cpp.o	39aafb00f162739f
 24649	43468	1777185091343220900	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_graphics/juce_graphics.cpp.o	5027924ca7584856
 24655	44525	1777185092461887900	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_graphics/juce_graphics_Harfbuzz.cpp.o	fbfa913386e75cc5
 24643	58543	1777185105079984400	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_gui_basics/juce_gui_basics.cpp.o	34309395a28f31c3
-58587	101326	1777185148529871000	extras/Build/juceaide/juceaide_artefacts/Custom/juceaide	50b24f38fcd17fb4
+49	22940	0	/mnt/d/Synching/code/JUCE/TinyVU/build-linux/JUCE/tools/CMakeFiles/cmake.verify_globs	c285c2b88fc5687a

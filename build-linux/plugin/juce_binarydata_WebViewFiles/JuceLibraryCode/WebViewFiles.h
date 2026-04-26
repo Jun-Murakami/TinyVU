@@ -9,7 +9,7 @@
 namespace webview_files
 {
     extern const char*   webview_files_zip;
-    const int            webview_files_zipSize = 177337;
+    const int            webview_files_zipSize = 177393;
 
     // Number of elements in the namedResourceList and originalFileNames arrays.
     const int namedResourceListSize = 1;

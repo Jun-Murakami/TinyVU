@@ -244,7 +244,18 @@ TinyVUAudioProcessorEditor::TinyVUAudioProcessorEditor(TinyVUAudioProcessor& p)
     // フルレスポンシブ。OS ウィンドウ枠 / 自前コーナーグリップ / WebUI オーバーレイで
     //  すべて同じ最小・最大サイズを共有する（window_action 側のクランプもこの定数を参照）。
     setResizable(true, true);
-    setSize(kInitialWidth, kInitialHeight);
+
+    // Cubase 等は VST3 プラグインウィンドウの「独自最小高さ」（実測 ~105px）に縮めた
+    //  サイズを保存・復元するため、ホスト保存値を信用せず APVTS state に独自保存した
+    //  サイズで強制復元する。これは TinyVU が他シリーズより遥かに小さい（最小 265×90）
+    //  ことに起因する固有のワークアラウンド。
+    const auto apvtsState = audioProcessor.getState().state;
+    const int savedW = static_cast<int>(apvtsState.getProperty("editorWidth",  kInitialWidth));
+    const int savedH = static_cast<int>(apvtsState.getProperty("editorHeight", kInitialHeight));
+    const int restoreW = juce::jlimit(kMinWidth,  kMaxWidth,  savedW);
+    const int restoreH = juce::jlimit(kMinHeight, kMaxHeight, savedH);
+
+    setSize(restoreW, restoreH);
     setResizeLimits(kMinWidth, kMinHeight, kMaxWidth, kMaxHeight);
     resizerConstraints.setSizeLimits(kMinWidth, kMinHeight, kMaxWidth, kMaxHeight);
 
@@ -264,15 +275,15 @@ TinyVUAudioProcessorEditor::TinyVUAudioProcessorEditor(TinyVUAudioProcessor& p)
     else
         webView.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
 
-    // 一部ホスト（Pro Tools AAX 等）はコンストラクタ中の setSize を無視してホスト保存
-    //  サイズで最初の resized() を呼ぶことがあり、kMinWidth/kMinHeight を割って開く。
-    //  次のメッセージループで割っていたら初期サイズへ強制復帰する（シリーズ共通の手当て）。
+    // ホスト（特に Cubase）はコンストラクタ中の setSize を上書きし、独自に持っている
+    //  プラグインウィンドウ最小高さ（~105px）に丸めた値で resized() を呼ぶことがある。
+    //  次のメッセージループで APVTS 保存サイズへ強制復帰させる。
     juce::Component::SafePointer<TinyVUAudioProcessorEditor> safeSelf { this };
-    juce::MessageManager::callAsync([safeSelf]()
+    juce::MessageManager::callAsync([safeSelf, restoreW, restoreH]()
     {
         if (safeSelf == nullptr) return;
-        if (safeSelf->getWidth() < kMinWidth || safeSelf->getHeight() < kMinHeight)
-            safeSelf->setSize(kInitialWidth, kInitialHeight);
+        if (safeSelf->getWidth() != restoreW || safeSelf->getHeight() != restoreH)
+            safeSelf->setSize(restoreW, restoreH);
     });
 
     // 120Hz で メーター値を WebView に push する（VU 弾道は WebView 側で計算）。
@@ -302,6 +313,13 @@ void TinyVUAudioProcessorEditor::resized()
         resizer->setBounds(getWidth() - gripperSize, getHeight() - gripperSize, gripperSize, gripperSize);
         resizer->toFront(true);
     }
+
+    // 編集サイズを APVTS state に保存しておき、次回オープン時にホスト保存値ではなく
+    //  この値で復元する（Cubase の最小高さ丸め回避）。property は parameter ID と
+    //  衝突しない名前なので APVTS の listener には影響しない。
+    auto state = audioProcessor.getState().state;
+    state.setProperty("editorWidth",  getWidth(),  nullptr);
+    state.setProperty("editorHeight", getHeight(), nullptr);
 }
 
 std::optional<TinyVUAudioProcessorEditor::Resource>
