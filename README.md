@@ -2,7 +2,7 @@
 
 A minimalist VU meter plugin built with the same JUCE + WebView (Vite / React / MUI) stack as the sister plugins (ZeroComp / ZeroLimit / ZeroEQ / TestTone). The audio path is fully pass-through — TinyVU only observes the signal and shows it on a classic analog-style VU meter that can be shrunk to almost any size.
 
-Supported formats: **VST3 / AU / AAX / Standalone**, plus a **WebAssembly browser demo**.  
+Supported formats: **VST3 / AU / AAX / Standalone** (Windows / macOS) and **VST3 / LV2 / CLAP / Standalone** (Linux), plus a **WebAssembly browser demo**.  
 https://tinyvu-demo.web.app/
 
 <img width="612" height="468" alt="image" src="https://github.com/user-attachments/assets/34d0a9dc-639e-484d-8336-3b30b58c9519" />
@@ -33,8 +33,10 @@ The browser runs the same RMS, the same +3.01 dB sine calibration, the same ball
 - C++17 toolchain
   - Windows: Visual Studio 2022 (Desktop development with C++)
   - macOS: Xcode 14+
+  - Linux: gcc 13+ / clang + the apt packages listed under [Building on Linux](#building-on-linux)
 - Node.js 18+ and npm (for the WebUI build)
 - JUCE (vendored as a git submodule)
+- `clap-juce-extensions` (vendored as a git submodule, used only for Linux CLAP build)
 - Optional: AAX SDK (Pro Tools — drop into `aax-sdk/`)
 - Optional: Inno Setup 6 (for the Windows installer)
 - Optional (for the web demo): emscripten / emsdk
@@ -53,7 +55,41 @@ cd webui && npm install && cd ..
 powershell -ExecutionPolicy Bypass -File build_windows.ps1 -Configuration Release
 # macOS
 ./build_macos.zsh
+# Linux (see "Building on Linux" below for required apt packages)
+bash build_linux.sh
 ```
+
+### Building on Linux
+
+Tested on **WSL2 Ubuntu 24.04**, but should work on any modern glibc-based distro with `webkit2gtk-4.1` available.
+
+Install the build dependencies:
+
+```bash
+sudo apt update
+sudo apt install -y \
+  build-essential pkg-config cmake ninja-build git \
+  libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev \
+  libfreetype-dev libfontconfig1-dev \
+  libx11-dev libxcomposite-dev libxcursor-dev libxext-dev \
+  libxinerama-dev libxrandr-dev libxrender-dev \
+  libwebkit2gtk-4.1-dev libglu1-mesa-dev mesa-common-dev libgtk-3-dev
+```
+
+Then:
+
+```bash
+git submodule update --init --recursive   # JUCE + clap-juce-extensions
+bash build_linux.sh                        # Release build of VST3 / LV2 / CLAP / Standalone
+```
+
+Output:
+
+- Build artefacts: `build-linux/plugin/TinyVU_artefacts/Release/{VST3,LV2,CLAP,Standalone}/`
+- Auto-installed: `~/.vst3/TinyVU.vst3`, `~/.lv2/TinyVU.lv2`, `~/.clap/TinyVU.clap`
+- Distribution zip: `releases/<VERSION>/TinyVU_<VERSION>_Linux_VST3_LV2_CLAP_Standalone.zip`
+
+LV2 and CLAP are gated behind `if(UNIX AND NOT APPLE)` in CMake, so existing Windows / macOS release flows are unaffected. AU and AAX are skipped on Linux as expected.
 
 ### Manual CMake build (development)
 

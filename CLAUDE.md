@@ -11,7 +11,7 @@
   - 音響経路は完全パススルー（音は変えない）。
   - フルレスポンシブ。プラグインウィンドウを縦横自由にリサイズでき、極小サイズでも針が見える。
   - モノラルバスでは 1 つだけ、ステレオバスでは L / R 並列で 2 つ表示する。
-- **対象フォーマット**: VST3 / AU / AAX / Standalone
+- **対象フォーマット**: VST3 / AU / AAX / Standalone（Windows / macOS）+ VST3 / LV2 / CLAP / Standalone（Linux）
 - **設定項目（最小限）**:
   - Reference Level: 0VU として扱う dBFS 基準。`-9 / -12 / -14 / -16 / -18 / -20 / -22 / -24` dBFS の choice、既定 -18 dBFS。
   - Theme: `Dark` / `Light`。既定 Dark。
@@ -96,6 +96,14 @@
   - 成果物: `releases/<VERSION>/Windows/...` と `TinyVU_<VERSION>_Windows_Setup.exe`（Inno Setup 6 必須）。
   - AAX 署名は `.env` に PACE 情報がある場合のみ自動実行。
   - WrapGUID は **`.env` の `PACE_ORGANIZATION` に書く**（スクリプト / ドキュメントに生 GUID をハードコードしない）。姉妹リポジトリの `.env` を雛形にして、当該プラグインの GUID に差し替える運用。
+- Linux 配布ビルド: `bash build_linux.sh`（WSL2 Ubuntu 24.04 で動作確認）
+  - 成果物: `releases/<VERSION>/TinyVU_<VERSION>_Linux_VST3_LV2_CLAP_Standalone.zip`。VST3 / LV2 / CLAP / Standalone を同梱。
+  - 自動インストール先: `~/.vst3/TinyVU.vst3`, `~/.lv2/TinyVU.lv2`, `~/.clap/TinyVU.clap`（VST3 / LV2 は JUCE の `COPY_PLUGIN_AFTER_BUILD`、CLAP は `build_linux.sh` 側で明示コピー）。
+  - LV2 / CLAP は **Linux ビルドでのみ** 有効化（`if(UNIX AND NOT APPLE)` で条件分岐）。Windows / macOS の既存リリース経路には影響させない。
+  - LV2URI: `https://junmurakami.com/plugins/tinyvu`（`plugin/CMakeLists.txt` の `juce_add_plugin` 内）。LV2 規約上 stable な URI 必須なのでバージョンを跨いで変更しない。
+  - CLAP: `clap-juce-extensions` を submodule として取り込み、`clap_juce_extensions_plugin(... CLAP_ID "com.junmurakami.tinyvu" CLAP_FEATURES analyzer)` を呼ぶ。
+  - 必要 apt パッケージ: `build-essential pkg-config cmake ninja-build git libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev libfreetype-dev libfontconfig1-dev libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev libwebkit2gtk-4.1-dev libglu1-mesa-dev mesa-common-dev libgtk-3-dev`。
+  - WSL2 上で GUI 検証するときは Carla / Bitwig を `pw-jack` 経由で起動する（PipeWire の libjack を使わせる）。WSLg PulseAudio へは PipeWire の `module-pulse-tunnel` で sink を作る。
 
 ### AAX 署名用 PFX（Windows）
 
