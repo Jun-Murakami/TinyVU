@@ -268,7 +268,9 @@ TinyVU/
 
 ## License
 
-Plugin source is released under the terms in `LICENSE`. Third-party SDKs (JUCE / VST3 / AAX / WebView2 / etc.) are governed by their own licenses; the runtime dependencies are listed in the in-app Licenses dialog. The VU dial SVG and ballistics curve are ported from [vu-meter-react](https://github.com/jun-murakami/vu-meter-react) (same author, MIT licensed).
+This project is licensed under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0-or-later) — see the [LICENSE](LICENSE) file for the full text.
+
+It uses [JUCE](https://juce.com/) under the AGPLv3 option of its dual-licensing scheme. Other third-party SDKs (VST3 / AAX / WebView2 / etc.) are governed by their own licenses; the runtime dependency list is shown in the in-app *Licenses* dialog. The VU dial SVG and ballistics curve are ported from [vu-meter-react](https://github.com/jun-murakami/vu-meter-react) (same author, MIT licensed).
 
 ## Credits
 

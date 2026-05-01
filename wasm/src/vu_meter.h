@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Jun Murakami
 #pragma once
 
 // プラグイン側 plugin/src/dsp/VuMeter.cpp と同じアルゴリズムを WASM 用にミニマル移植。

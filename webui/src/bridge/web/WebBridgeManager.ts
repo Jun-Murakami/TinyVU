@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Jun Murakami
 /**
  * `juceBridge` の Web 互換版。プラグイン版（juce.ts）と同じ I/F を提供する。
  *  - addEventListener / removeEventListener: WebAudioEngine のリスナーに丸投げ

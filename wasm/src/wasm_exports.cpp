@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Jun Murakami
 // JS 側（AudioWorklet）が呼ぶ C ABI。
 // エンジン本体は vu_meter.h（plugin/src/dsp/VuMeter.cpp と同一アルゴリズム）。
 
