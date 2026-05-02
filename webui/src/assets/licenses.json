@@ -840,7 +840,7 @@
     "path": "/Users/jun/SourceCode/JUCE/TinyVU/webui/node_modules/throttle-debounce",
     "licenseFile": "/Users/jun/SourceCode/JUCE/TinyVU/webui/node_modules/throttle-debounce/LICENSE.md"
   },
-  "tinyvu-webui@1.0.0": {
+  "tinyvu-webui@1.0.1": {
     "licenses": "UNLICENSED",
     "private": true,
     "path": "/Users/jun/SourceCode/JUCE/TinyVU/webui"
