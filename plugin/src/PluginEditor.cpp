@@ -209,12 +209,11 @@ TinyVUAudioProcessorEditor::TinyVUAudioProcessorEditor(TinyVUAudioProcessor& p)
                       {
                           const int w = juce::jlimit(kMinWidth,  kMaxWidth,  static_cast<int>(args[1]));
                           const int h = juce::jlimit(kMinHeight, kMaxHeight, static_cast<int>(args[2]));
-                          juce::Component::SafePointer<TinyVUAudioProcessorEditor> safeSelf { this };
-                          juce::MessageManager::callAsync([safeSelf, w, h]()
-                          {
-                              if (safeSelf == nullptr) return;
-                              safeSelf->setSize(w, h);
-                          });
+                          // 同期的にリサイズしてから completion を返す。こうすると WebUI 側の
+                          // callNative Promise が「実リサイズ完了」で解決し、バックプレッシャ方式
+                          // （往復中は次を送らない）が正しく機能する。callAsync + 即 completion だと
+                          // 実リサイズ前に解決してしまい要求が積み上がってリサイズが重くなる。
+                          setSize(w, h);
                           completion(juce::var{ true });
                           return;
                       }

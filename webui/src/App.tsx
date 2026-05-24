@@ -190,33 +190,64 @@ function App() {
   //  ドラッグで `window_action.resizeTo` を native にコールしてウィンドウを伸縮させる。
   //  最小サイズは native（PluginEditor.h kMinWidth/kMinHeight）と同期。
   const dragState = useRef<{ startX: number; startY: number; startW: number; startH: number } | null>(null);
-  const resizeRAFRef = useRef<number>(0);
-  const onResizeDragStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+  // リサイズはバックプレッシャ方式で送る。host への resize は往復処理（callNative の Promise は
+  //  onSize 完了で解決）で、完了を待たず高頻度に送ると要求が積み上がってウィンドウがカーソルから
+  //  どんどん遅れていく。「往復中は次を送らず、完了時に最新の保留サイズだけを送る」ことで
+  //  host が捌ける最大レートで常に最新サイズだけを届け、蓄積遅延を無くす。
+  //  ※ native 側 (PluginEditor.cpp) も setSize を同期実行してから completion を返すよう変更済み。
+  const pendingResize  = useRef<{ w: number; h: number } | null>(null);
+  const lastSentSize   = useRef<{ w: number; h: number } | null>(null);
+  const resizeInFlight = useRef(false);
+
+  const pumpResize = () => {
+    if (resizeInFlight.current) return;
+    const s = pendingResize.current;
+    if (!s) return;
+    const last = lastSentSize.current;
+    if (last && last.w === s.w && last.h === s.h) { pendingResize.current = null; return; }
+    pendingResize.current = null;
+    lastSentSize.current = s;
+    resizeInFlight.current = true;
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resizeInFlight.current = false;
+      pumpResize();
+    };
+    const safety = window.setTimeout(done, 200); // 完了応答が来なくてもフリーズしない安全策
+    void juceBridge.callNative('window_action', 'resizeTo', s.w, s.h).then(() => {
+      window.clearTimeout(safety);
+      done();
+    });
+  };
+
+  const onResizeDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     dragState.current = {
       startX: e.clientX,
       startY: e.clientY,
       startW: window.innerWidth,
       startH: window.innerHeight,
     };
+    lastSentSize.current = { w: window.innerWidth, h: window.innerHeight };
     e.currentTarget.setPointerCapture(e.pointerId);
-  }, []);
-  const onResizeDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+  };
+  const onResizeDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragState.current) return;
     const dx = e.clientX - dragState.current.startX;
     const dy = e.clientY - dragState.current.startY;
     // 最小サイズは PluginEditor.h の kMinWidth/kMinHeight と同期
-    const w = Math.max(240, dragState.current.startW + dx);
-    const h = Math.max(90, dragState.current.startH + dy);
-    if (!resizeRAFRef.current) {
-      resizeRAFRef.current = requestAnimationFrame(() => {
-        resizeRAFRef.current = 0;
-        juceBridge.callNative('window_action', 'resizeTo', w, h);
-      });
-    }
-  }, []);
-  const onResizeDragEnd = useCallback(() => {
+    const w = Math.round(Math.max(240, dragState.current.startW + dx));
+    const h = Math.round(Math.max(90, dragState.current.startH + dy));
+    pendingResize.current = { w, h };
+    pumpResize();
+  };
+  const onResizeDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
     dragState.current = null;
-  }, []);
+    pumpResize();
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId))
+      e.currentTarget.releasePointerCapture(e.pointerId);
+  };
 
   return (
     <ThemeProvider theme={pluginTheme}>
@@ -440,7 +471,6 @@ function App() {
               backgroundColor: 'transparent',
               touchAction: 'none',
             }}
-            title='Resize'
           />
         )}
       </Box>
