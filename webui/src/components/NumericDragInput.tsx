@@ -89,10 +89,10 @@ export const NumericDragInput: FC<NumericDragInputProps> = ({
     [parse],
   );
 
-  // 編集モードに入る時、現在値を初期テキストとしてセットして input を選択状態にする
+  // 編集モードに入ったら input を選択状態にする（DOM 操作のみ）。
+  //  初期テキストの設定は編集開始ハンドラ（handlePointerUp）側で行う。
   useEffect(() => {
     if (!editing) return;
-    setEditText(fmt(value));
     // 次のフレームで全選択
     const id = requestAnimationFrame(() => {
       const el = inputRef.current;
@@ -102,7 +102,7 @@ export const NumericDragInput: FC<NumericDragInputProps> = ({
       }
     });
     return () => cancelAnimationFrame(id);
-  }, [editing, fmt, value]);
+  }, [editing]);
 
   const commitEdit = useCallback(
     (text: string) => {
@@ -161,12 +161,13 @@ export const NumericDragInput: FC<NumericDragInputProps> = ({
         // capture を持っていなかった場合は無視
       }
       dragRef.current = null;
-      // ドラッグせず離した場合は編集モードへ
+      // ドラッグせず離した場合は編集モードへ。初期テキストもここで確定する。
       if (drag && !drag.moved) {
+        setEditText(fmt(value));
         setEditing(true);
       }
     },
-    [],
+    [fmt, value],
   );
 
   // ===== Wheel =====

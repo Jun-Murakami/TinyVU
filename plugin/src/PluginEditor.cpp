@@ -23,7 +23,7 @@
 
 namespace {
 
-std::vector<std::byte> streamToVector(juce::InputStream& stream)
+[[maybe_unused]] std::vector<std::byte> streamToVector(juce::InputStream& stream)
 {
     const auto sizeInBytes = static_cast<size_t>(stream.getTotalLength());
     std::vector<std::byte> result(sizeInBytes);
@@ -203,18 +203,64 @@ TinyVUAudioProcessorEditor::TinyVUAudioProcessorEditor(TinyVUAudioProcessor& p)
                   [this](const juce::Array<juce::var>& args,
                          juce::WebBrowserComponent::NativeFunctionCompletion completion)
                   {
-                      // Standalone のみ "resizeTo" でウィンドウを動的リサイズできる。
-                      //  プラグインホスト下では基本ホストが管理するため、無視するのが安全。
-                      if (args.size() >= 3 && args[0].toString() == "resizeTo")
+                      const auto action = args.size() >= 1 ? args[0].toString() : juce::String();
+
+                      // ドラッグ開始時に CSS px → 論理 px の換算比率を 1 回だけ確定する（MixCompare 方式）。
+                      //  ratio = getWidth()/innerWidth ≒ devicePixelRatio/ホスト総スケール。これが無いと
+                      //  分数スケーリング環境でハンドル(CSS px)とウィンドウ(論理px)がズレる。
+                      if (action == "resizeBegin" && args.size() >= 3)
                       {
-                          const int w = juce::jlimit(kMinWidth,  kMaxWidth,  static_cast<int>(args[1]));
-                          const int h = juce::jlimit(kMinHeight, kMaxHeight, static_cast<int>(args[2]));
-                          // 同期的にリサイズしてから completion を返す。こうすると WebUI 側の
-                          // callNative Promise が「実リサイズ完了」で解決し、バックプレッシャ方式
-                          // （往復中は次を送らない）が正しく機能する。callAsync + 即 completion だと
-                          // 実リサイズ前に解決してしまい要求が積み上がってリサイズが重くなる。
-                          setSize(w, h);
+                          const double cssW = static_cast<double>(args[1]);
+                          const double cssH = static_cast<double>(args[2]);
+                          webResizeRatioW = (cssW > 0.0) ? static_cast<double>(getWidth())  / cssW : 1.0;
+                          webResizeRatioH = (cssH > 0.0) ? static_cast<double>(getHeight()) / cssH : 1.0;
                           completion(juce::var{ true });
+                          return;
+                      }
+
+                      // WebUI 読込完了時に呼ばれる。innerWidth/innerHeight(CSS px) から ratio を確定し、
+                      //  初回だけ初期ウィンドウを「設計/保存 CSS px × ratio」に合わせる（MixCompare 方式）。
+                      //  これが無いと分数スケーリング環境で初期サイズが設計より小さく見える。
+                      if (action == "apply_layout" && args.size() >= 3)
+                      {
+                          const double cssW = static_cast<double>(args[1]);
+                          const double cssH = static_cast<double>(args[2]);
+                          webResizeRatioW = (cssW > 0.0) ? static_cast<double>(getWidth())  / cssW : 1.0;
+                          webResizeRatioH = (cssH > 0.0) ? static_cast<double>(getHeight()) / cssH : 1.0;
+                        #if JUCE_LINUX || JUCE_BSD
+                          // constrainer の min/max も ratio 換算で論理 px に合わせる。VST3 は onSize→
+                          //  setBoundsConstrained で constrainer を適用するため、論理 px のままの min/max だと
+                          //  ハンドルリサイズの下限/上限が CSS 設計値とズレる（min が大きすぎると中身がはみ出す）。
+                          resizerConstraints.setSizeLimits(juce::roundToInt(kMinWidth  * webResizeRatioW),
+                                                           juce::roundToInt(kMinHeight * webResizeRatioH),
+                                                           juce::roundToInt(kMaxWidth  * webResizeRatioW),
+                                                           juce::roundToInt(kMaxHeight * webResizeRatioH));
+                          // Linux のみ初期サイズを ratio 換算で確定（Windows/macOS は ratio≒1 かつ
+                          //  WebView2/WKWebView が DPI を処理するため従来の ctor サイズに任せる）。
+                          //  ※ 保存サイズ(論理 px)から復元した場合は上書きしない。保存値は既に論理 px で
+                          //    正しいので、ここで × ratio すると二重適用になり巨大化する。初回(fresh)のみ。
+                          if (!initialLayoutApplied)
+                          {
+                              initialLayoutApplied = true;
+                              if (!restoredFromSavedSize)
+                                  setSize(juce::roundToInt(designTargetW * webResizeRatioW),
+                                          juce::roundToInt(designTargetH * webResizeRatioH));
+                          }
+                        #endif
+                          completion(juce::var{ true });
+                          return;
+                      }
+
+                      if (action == "resizeTo" && args.size() >= 3)
+                      {
+                          // args は CSS px。先に CSS(設計)空間でクランプし、固定比率を掛けて論理 px へ。
+                          //  同期的にリサイズしてから completion を返すことで WebUI のバックプレッシャが機能する。
+                          //  Linux ではさらにホストの echo 待ち＋落ち着き後の再同期で齟齬を収束（applyWindowResize 内）。
+                          const double cssW = juce::jlimit<double>(kMinWidth,  kMaxWidth,  static_cast<double>(args[1]));
+                          const double cssH = juce::jlimit<double>(kMinHeight, kMaxHeight, static_cast<double>(args[2]));
+                          applyWindowResize(juce::roundToInt(cssW * webResizeRatioW),
+                                            juce::roundToInt(cssH * webResizeRatioH),
+                                            std::move(completion));
                           return;
                       }
                       completion(juce::var{ false });
@@ -244,21 +290,42 @@ TinyVUAudioProcessorEditor::TinyVUAudioProcessorEditor(TinyVUAudioProcessor& p)
 
     // フルレスポンシブ。OS ウィンドウ枠 / 自前コーナーグリップ / WebUI オーバーレイで
     //  すべて同じ最小・最大サイズを共有する（window_action 側のクランプもこの定数を参照）。
+#if JUCE_LINUX || JUCE_BSD
+    // Linux: Bitwig 等はホスト枠ドラッグをプラグインへ転送せず、枠を広げても黒余白が増えるだけ
+    //  なので「ユーザーによる枠リサイズは不可」とホストへ申告する（canResize/guiCanResize=false）。
+    //  リサイズは自前 WebUI ハンドル経由のみ。サイズ制限は独自 constrainer で管理（下記参照）。
+    //  ※ setResizable(false) は setConstrainer の「後」で呼ぶ必要がある（setConstrainer が
+    //    constrainer の min≠max を見て resizableByHost=true に戻すため）。下の setConstrainer 直後で確定する。
+#else
     setResizable(true, true);
+#endif
 
     // Cubase 等は VST3 プラグインウィンドウの「独自最小高さ」（実測 ~105px）に縮めた
     //  サイズを保存・復元するため、ホスト保存値を信用せず APVTS state に独自保存した
     //  サイズで強制復元する。これは TinyVU が他シリーズより遥かに小さい（最小 265×90）
     //  ことに起因する固有のワークアラウンド。
     const auto apvtsState = audioProcessor.getState().state;
+    // 保存サイズ(論理 px)があれば同一ディスプレイで正しいのでそのまま復元する。無ければ設計値。
+    restoredFromSavedSize = apvtsState.hasProperty("editorWidth") && apvtsState.hasProperty("editorHeight");
     const int savedW = static_cast<int>(apvtsState.getProperty("editorWidth",  kInitialWidth));
     const int savedH = static_cast<int>(apvtsState.getProperty("editorHeight", kInitialHeight));
     const int restoreW = juce::jlimit(kMinWidth,  kMaxWidth,  savedW);
     const int restoreH = juce::jlimit(kMinHeight, kMaxHeight, savedH);
 
+    // designTarget は設計 CSS px。保存値が無い初回のみ apply_layout で × ratio して使う。
+    designTargetW = kInitialWidth;
+    designTargetH = kInitialHeight;
     setSize(restoreW, restoreH);
-    setResizeLimits(kMinWidth, kMinHeight, kMaxWidth, kMaxHeight);
     resizerConstraints.setSizeLimits(kMinWidth, kMinHeight, kMaxWidth, kMaxHeight);
+#if JUCE_LINUX || JUCE_BSD
+    // setResizeLimits は min≠max で resizableByHost を true に戻すため使わず、独自 constrainer を設定。
+    setConstrainer(&resizerConstraints);
+    // ★ setConstrainer は constrainer の min≠max を見て resizableByHost=true に戻すので、
+    //   枠リサイズ無効化(false)は必ず setConstrainer の「後」で確定する（MixCompare と同じ順序）。
+    setResizable(false, false);
+#else
+    setResizeLimits(kMinWidth, kMinHeight, kMaxWidth, kMaxHeight);
+#endif
 
     // コーナーグリップ。WebView より前面に置いて確実にドラッグできるようにする。
     resizer.reset(new juce::ResizableCornerComponent(this, &resizerConstraints));
@@ -298,6 +365,24 @@ TinyVUAudioProcessorEditor::~TinyVUAudioProcessorEditor()
 {
     isShuttingDown.store(true, std::memory_order_release);
     stopTimer();
+
+#if JUCE_LINUX || JUCE_BSD
+    // 保留中のリサイズ ack completion は呼ばずに破棄（破棄中の WebView へのコールバックを避ける）。
+    resizeAckPending = false;
+    pendingResizeCompletion = {};
+#endif
+
+    // WebView を明示的に teardown してから破棄する。これをしないと Linux + NVIDIA で
+    //  Standalone 終了時に WebKit/EGL のクリーンアップ順序が崩れ、libEGL_nvidia の atexit で
+    //  SEGV する（MixCompare はこの手順があるためクラッシュしない）。about:blank へ遷移して
+    //  ページと GPU リソースを解放 → stop → 非表示 → 親から切り離し、の順。
+    if (webViewLifetimeGuard.isConstructed())
+    {
+        webView.goToURL("about:blank");
+        webView.stop();
+        webView.setVisible(false);
+    }
+    removeChildComponent(&webView);
 }
 
 void TinyVUAudioProcessorEditor::paint(juce::Graphics& g)
@@ -318,9 +403,60 @@ void TinyVUAudioProcessorEditor::resized()
     // 編集サイズを APVTS state に保存しておき、次回オープン時にホスト保存値ではなく
     //  この値で復元する（Cubase の最小高さ丸め回避）。property は parameter ID と
     //  衝突しない名前なので APVTS の listener には影響しない。
+    //  保存は論理 px。同一ディスプレイで開き直す限りこの値で正しく復元できる（apply_layout は
+    //  保存値がある場合は上書きしないので二重 ratio にならない）。
     auto state = audioProcessor.getState().state;
     state.setProperty("editorWidth",  getWidth(),  nullptr);
     state.setProperty("editorHeight", getHeight(), nullptr);
+
+#if JUCE_LINUX || JUCE_BSD
+    // ホスト主導の resized()（= guiSetSize/onSize の echo）が着地したら保留 resizeTo を確定。
+    //  自分の setSize 起因（resizeSelfDriven）はホスト確定ではないので無視する。
+    if (resizeAckPending && !resizeSelfDriven)
+        resolveResizeAck();
+#endif
+}
+
+void TinyVUAudioProcessorEditor::resolveResizeAck()
+{
+    if (!resizeAckPending)
+        return;
+    resizeAckPending = false;
+    auto completion = std::move(pendingResizeCompletion);
+    pendingResizeCompletion = {};
+    if (completion)
+        completion(juce::var{ true });
+}
+
+void TinyVUAudioProcessorEditor::applyWindowResize(
+    int targetW, int targetH, juce::WebBrowserComponent::NativeFunctionCompletion completion)
+{
+#if JUCE_LINUX || JUCE_BSD
+    // Linux 限定の「真のバックプレッシャ」: completion を即返さず、ホストが実際にリサイズし終える
+    //  （resized() が再発火する）まで保留する。JS は往復1件ずつ送るようになり、高頻度送信で
+    //  ホストがリクエストを取りこぼす齟齬（黒残り/見切れ）を防ぐ。
+    resolveResizeAck();  // 以前の保留が残っていれば先に解決（安全策）
+    lastResizeActivityMs = juce::Time::getMillisecondCounter();
+    settleReconcileDone = false;
+
+    if (getWidth() != targetW || getHeight() != targetH)
+    {
+        pendingResizeCompletion = std::move(completion);
+        resizeAckPending = true;
+        resizeAckStartMs = juce::Time::getMillisecondCounter();
+        const juce::ScopedValueSetter<bool> selfDriven(resizeSelfDriven, true);
+        setSize(targetW, targetH);
+        // ホストが echo を返さない場合は timerCallback の安全タイムアウトで確定。
+    }
+    else
+    {
+        completion(juce::var{ true });  // サイズ不変なら往復不要
+    }
+#else
+    // Windows / macOS: 従来どおり即時 setSize + 即完了。
+    setSize(targetW, targetH);
+    completion(juce::var{ true });
+#endif
 }
 
 std::optional<TinyVUAudioProcessorEditor::Resource>
@@ -431,8 +567,41 @@ void TinyVUAudioProcessorEditor::pushMeterUpdate()
 
 void TinyVUAudioProcessorEditor::timerCallback()
 {
+#if JUCE_LINUX || JUCE_BSD
+    // リサイズ ack の安全タイムアウト: ホストが echo を返さない場合でも保留 completion を必ず
+    //  解決し、JS のバックプレッシャがフリーズしないようにする（~45ms = 最低 ~22fps を保証）。
+    if (resizeAckPending
+        && (juce::Time::getMillisecondCounter() - resizeAckStartMs) > 45)
+        resolveResizeAck();
+#endif
+
     if (isShuttingDown.load(std::memory_order_acquire)) return;
     if (! webViewLifetimeGuard.isConstructed()) return;
+
+#if JUCE_LINUX || JUCE_BSD
+    // リサイズ落ち着き後の強制再同期（2 tick に分割した 1px ジグル）。editor が既に最終サイズだと
+    //  resized() が発火せず、ホストのコンテナ窓が中間サイズで取り残されても再同期されない。
+    //  1px だけ変えて戻すことで guiRequestResize/webView.setBounds を再発火させ収束。2 tick に
+    //  分けるのは、同期連続 setBounds が WebKitGTK の描画を固める不具合を避けるため。
+    if (resyncStep2Pending)
+    {
+        resyncStep2Pending = false;
+        const juce::ScopedValueSetter<bool> selfDriven(resizeSelfDriven, true);
+        setSize(resyncTargetW, resyncTargetH);
+    }
+    else if (!settleReconcileDone
+        && !resizeAckPending
+        && isVisible()
+        && (juce::Time::getMillisecondCounter() - lastResizeActivityMs) > 120)
+    {
+        settleReconcileDone = true;
+        resyncTargetW = getWidth();
+        resyncTargetH = getHeight();
+        resyncStep2Pending = true;
+        const juce::ScopedValueSetter<bool> selfDriven(resizeSelfDriven, true);
+        setSize(resyncTargetW, juce::jmax(1, resyncTargetH - 1));
+    }
+#endif
 
    #if defined(JUCE_WINDOWS)
     pollAndMaybeNotifyDpiChange();

@@ -248,18 +248,21 @@ const SingleMeter: FC<SingleMeterProps> = ({
   const lastTimeRef = useRef<number>(0);
   const lastClipTimeMsRef = useRef<number | null>(null);
 
+  // rAF ループに最新値を渡す Latest Ref。レンダー中の書き換えは禁止のため effect で同期する。
   const sourceRef = useRef(source);
-  sourceRef.current = source;
   const referenceLevelRef = useRef(referenceLevel);
-  referenceLevelRef.current = referenceLevel;
+  useEffect(() => {
+    sourceRef.current = source;
+    referenceLevelRef.current = referenceLevel;
+  }, [source, referenceLevel]);
 
   // ピークランプの色はテーマに関わらず固定（dark テーマ寄り）。
   //  ライト時の周辺がクリーム色で明るいため、off 時は埋没しないよう中間グレーに振る。
   const LAMP_BASE = '#ff6b6b';   // active 時の赤
   const LAMP_OFF_BG = '#6a6a6a'; // off 時の中間グレー（明るめの周辺でも視認できる）
   const LAMP_BORDER = 'rgba(255, 255, 255, 0.45)'; // 円周のリング（明るめ）
+  // 定数なので初期化のみ（再代入しない）
   const lampColorsRef = useRef({ base: LAMP_BASE, border: LAMP_OFF_BG });
-  lampColorsRef.current = { base: LAMP_BASE, border: LAMP_OFF_BG };
   // ピークランプ最後の状態（テーマ切替時に正しい色で再描画させる用）
   const lastIntensityRef = useRef(0);
 

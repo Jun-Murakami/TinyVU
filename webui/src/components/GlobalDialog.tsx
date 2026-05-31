@@ -21,12 +21,16 @@ export const GlobalDialog: React.FC = () => {
   const [inputValue, setInputValue] = React.useState('');
   const [inputError, setInputError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (!options) return;
-    const initial = options.input?.defaultValue ?? '';
-    setInputValue(initial);
+  // options が切り替わったら入力欄を初期化する。
+  //  effect ではなく「前回 options を記憶してレンダー中に調整」する公式パターン
+  //  （https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes）。
+  //  ユーザー入力で値が乖離するため純粋な導出にはできない。
+  const [prevOptions, setPrevOptions] = React.useState(options);
+  if (options !== prevOptions) {
+    setPrevOptions(options);
+    setInputValue(options?.input?.defaultValue ?? '');
     setInputError(null);
-  }, [options]);
+  }
 
   if (!options) return null;
 
