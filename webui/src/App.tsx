@@ -140,35 +140,12 @@ function App() {
       // 初期サイズを「設計 CSS px × ratio」に確定させる（MixCompare 方式）。現在の innerWidth/Height
       //  を渡すと native が ratio = getWidth()/innerWidth を求め、初期ウィンドウを設計どおりに整える。
       //  レイアウト確定後の値を使うため次フレームで送る。
-      //  第4引数に devicePixelRatio を添えて native 側のスケール実測（Linux WebView 補正）に使えるようにする。
+      //  第4引数に devicePixelRatio を添える。これは native 側 applyDisplayScale が Linux 埋め込み窓の
+      //  サイズ補正に使う「真のディスプレイ倍率」（旧 globalScale 実測ではない）。
       requestAnimationFrame(() => {
         juceBridge.callNative('window_action', 'apply_layout', window.innerWidth, window.innerHeight, window.devicePixelRatio);
       });
     });
-  }, []);
-
-  // DPR 変化追従: 別倍率のモニタへ移動するなどで devicePixelRatio が変わると、native の ratio(=DPR/peerScale)
-  //  が古くなり枠がズレる。matchMedia(resolution) で DPR 変化を検知して apply_layout を再送し、native 側に
-  //  「維持中の CSS サイズ × 新 ratio」で論理pxを再マッピングさせる。検知は一度きりなので毎回張り直す。
-  useEffect(() => {
-    let disposed = false;
-    let mql: MediaQueryList | null = null;
-    const onChange = () => {
-      if (disposed) return;
-      juceBridge.callNative('window_action', 'apply_layout', window.innerWidth, window.innerHeight, window.devicePixelRatio);
-      arm(); // 新しい DPR に対して張り直す
-    };
-    const arm = () => {
-      if (disposed) return;
-      mql?.removeEventListener('change', onChange);
-      mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
-      mql.addEventListener('change', onChange);
-    };
-    arm();
-    return () => {
-      disposed = true;
-      mql?.removeEventListener('change', onChange);
-    };
   }, []);
 
   // 右クリック抑制（DAW 操作の邪魔をしない）。Select などの内蔵 input は除外。

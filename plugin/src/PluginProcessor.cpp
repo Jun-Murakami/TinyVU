@@ -97,7 +97,6 @@ bool TinyVUAudioProcessor::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor* TinyVUAudioProcessor::createEditor()
 {
-    tv::applyCachedWebViewScaleCorrection();
     return new TinyVUAudioProcessorEditor(*this);
 }
 

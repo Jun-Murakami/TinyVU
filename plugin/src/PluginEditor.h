@@ -9,13 +9,6 @@
 #include <memory>
 #include <optional>
 
-namespace tv {
-// Linux WebView スケール補正（global-scale）のディスクキャッシュ。createEditor で早期適用し、
-//  apply_layout で実測した値を書き戻す。未測定環境では何もしない（既存挙動を変えない）。
-void applyCachedWebViewScaleCorrection();
-void cacheWebViewScaleCorrection(double globalScale);
-}
-
 class TinyVUAudioProcessorEditor : public juce::AudioProcessorEditor,
                                    private juce::Timer
 {
@@ -35,6 +28,7 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    void setScaleFactor(float newScale) override;
 
 private:
     void timerCallback() override;
@@ -79,6 +73,7 @@ private:
     //  Windows/macOS は従来どおり。
     void applyWindowResize(int targetW, int targetH,
                            juce::WebBrowserComponent::NativeFunctionCompletion completion);
+    void applyDisplayScale();
     void resolveResizeAck();
     bool   resizeAckPending { false };
     bool   resizeSelfDriven { false };
@@ -94,12 +89,12 @@ private:
     //  これが無いと分数スケーリング環境でハンドル(CSS px)とウィンドウ(論理px)がズレる（MixCompare 方式）。
     double webResizeRatioW { 1.0 };
     double webResizeRatioH { 1.0 };
+    double lastWebViewDpr { -1.0 }; // WebUI が apply_layout で報告する devicePixelRatio（真のディスプレイ倍率）
     // 初期サイズを「設計 CSS px × ratio」に合わせる（MixCompare の apply_layout 方式）。
     //  分数スケーリング環境で初期ウィンドウの CSS ビューポートが設計より小さくなるのを防ぐ。
     //  ※ 保存サイズ(APVTS)は従来どおり論理 px で持つ。保存値がある場合は ctor の復元値が同一
     //    ディスプレイで正しいので apply_layout では上書きしない（二重に ratio を掛けないため）。
     //    上書きするのは保存値が無い初回(fresh)だけ。designTarget* は ctor で確定した CSS(設計) px。
-    bool   initialLayoutApplied { false };
     bool   restoredFromSavedSize { false };
     int    designTargetW { kInitialWidth };
     int    designTargetH { kInitialHeight };
