@@ -425,18 +425,23 @@ void TinyVUAudioProcessorEditor::applyDisplayScale()
     //   処理するため transform 不要。macOS では getPlatformScaleFactor() が Retina でも 1.0 を返す一方
     //   devicePixelRatio は 2.0 のため、無条件適用すると s=2.0 で窓が倍に膨らむ。Windows は両者一致で偶然
     //   s=1.0 に収束するだけ。将来の DPI 不一致事故も含め Linux/BSD 以外では一切走らせない。
-    // Linux でのウィンドウ物理サイズ補正。ホストの宣言スケール(Bitwig は分数スケール 150% を 200% と
-    //  誤判定する)には依存せず、WebView が OS から拾う真のディスプレイ倍率 webViewDpr を基準にする。
-    //  Standalone は DPI-aware な top-level 窓なので OS/コンポジタが正しく拡大する→ここで掛けると二重で巨大化。
-    //  補正が要るのは「ホスト埋め込みプラグイン」だけ（KDE では Standalone も埋込も peerScale=1.0 で区別不能のため
-    //  wrapperType で分岐）。埋込時: 実物理=設計CSS×T×peerScale を webViewDpr 倍にしたいので T=webViewDpr/peerScale。
-    //   KDE埋込 1.5/1.0=1.5（誰も拡大しない not-dpi-aware ホスト）/ GNOME埋込 2.0/2.0=1.0（peer/Mutter が既に拡大）。
-    if (audioProcessor.wrapperType == juce::AudioProcessor::wrapperType_Standalone)
-    {
-        setTransform({});
-        return;
-    }
-
+    //
+    // 補正の唯一の目的は「WebView の CSS ビューポートを設計値へ一致させる」こと。
+    //  WebView 物理px = 設計CSS × T × peerScale、CSS ビューポート = 物理px / webViewDpr。これを設計値へ
+    //  一致させる解は wrapperType に依らず T = webViewDpr / peerScale。
+    //
+    //  peerScale = ComponentPeer::getPlatformScaleFactor() は「JUCE/OS が既にウィンドウを何倍に物理拡大
+    //  したか」を表す権威ある実スケール（Linux では LinuxComponentPeer が display->scale / globalScale で算出）。
+    //  これを判定軸にするので 1 本の式で両ケースが成立し、二重拡大も自動回避される:
+    //    - OS が拡大済み (peerScale==webViewDpr)        → T=1.0（恒等。何も足さない）
+    //    - OS が未拡大   (peerScale=1.0, webViewDpr=2.0) → T=2.0（正しく拡大）
+    //
+    //  かつては Standalone を一律 setTransform({}) で除外していたが、これは「Standalone は OS が必ず正しく
+    //  拡大する」前提に依存しており KDE/Wayland(XWayland) で破綻する: JUCE の display->scale は GNOME 互換
+    //  gsettings(scaling-factor=1) を拾って 1.0 になる一方、WebKitGTK は GDK スケール 2 で webViewDpr=2.0。
+    //  結果 peerScale=1.0 のまま transform 無しだとウィンドウは設計px のまま小さく、CSS ビューポートも潰れて
+    //  レイアウトが崩れる。よって Standalone も同じ T=webViewDpr/peerScale を適用する。
+    //  （StandaloneFilterWindow は getSizeToContainEditor が editor->getTransform() を見て窓サイズを追従させる。）
     double peerScale = 1.0;
     if (auto* p = getPeer())
     {

@@ -636,7 +636,7 @@
     "path": "D:\\Synching\\code\\JUCE\\TinyVU\\webui\\node_modules\\supports-preserve-symlinks-flag",
     "licenseFile": "D:\\Synching\\code\\JUCE\\TinyVU\\webui\\node_modules\\supports-preserve-symlinks-flag\\LICENSE"
   },
-  "tinyvu-webui@1.0.2": {
+  "tinyvu-webui@1.0.4": {
     "licenses": "UNLICENSED",
     "private": true,
     "path": "D:\\Synching\\code\\JUCE\\TinyVU\\webui"
