@@ -47,7 +47,7 @@ juce_add_plugin(TinyVU
     PLUGIN_MANUFACTURER_CODE Jmbc
     PLUGIN_CODE TnVu
     FORMATS ${TINYVU_FORMATS}
-    LV2URI "https://junmurakami.com/plugins/tinyvu"
+    LV2URI "https://junmurakami.com/apps/tinyvu"
     PLUGIN_AU_MAIN_TYPE "aufx"
     VST3_CATEGORIES "Fx" "Analyzer"
     AAX_CATEGORY "AAX_ePlugInCategory_None"
