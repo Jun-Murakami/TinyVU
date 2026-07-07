@@ -105,6 +105,14 @@
   - 必要 apt パッケージ: `build-essential pkg-config cmake ninja-build git libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev libfreetype-dev libfontconfig1-dev libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev libwebkit2gtk-4.1-dev libglu1-mesa-dev mesa-common-dev libgtk-3-dev`。
   - WSL2 上で GUI 検証するときは Carla / Bitwig を `pw-jack` 経由で起動する（PipeWire の libjack を使わせる）。WSLg PulseAudio へは PipeWire の `module-pulse-tunnel` で sink を作る。
 
+### JUCE パッチ機構（Linux WebView 修正）
+
+- `patches/juce-webview-linux-{utf8,ldpath,soname,childlog}.patch` を `cmake/ApplyJucePatch.cmake` が configure 時に冪等適用する（`git apply --reverse --check` で適用済みを判定し、未適用のみ apply）。**適用失敗・パッチ欠落は FATAL**（かつて WARNING で握りつぶし、パッチ無しバイナリを黙って出荷する事故があった）。失敗時は **touched files を `git checkout HEAD --` で pristine 化して全パッチを再適用する自動リカバリ**を持つ（旧版が焼き込まれた stale ツリーを回復）。
+  - utf8: 非ASCII文字化け修正（＋LV2 HiDPI） / ldpath: WebView 子プロセスの `LD_LIBRARY_PATH` サニタイズ＋`GDK_BACKEND=x11` 固定 / soname: `dlopen` をバージョン付き SONAME（`.so.0` 等）へフォールバック / childlog: 子プロセスの stdout/stderr をログへ dup2。**この順序でのみ適用可**（childlog は soname が追加した行を文脈に含む）。
+- **JUCE の C/C++ ソースは CRLF**（`git show HEAD:*.cpp` の生バイトが `\r\n`。autocrlf 副作用ではなくリポジトリの blob 自体）。よってパッチも **CRLF 必須**。`.gitattributes` の `patches/*.patch text eol=crlf` で、コミットしたマシンの改行設定に依存せず**チェックアウト時に必ず CRLF を実体化**する（`-text` はバイト保全なので、どこかのマシンで LF 保存されると劣化し configure が FATAL する）。
+- **マスター同期**: 親 `../patches`（= `JUCE/patches`、**マシンローカルで git 非管理**の共有プール）があれば、configure 時にローカル `patches/` へ**生ファイルコピーで上書き同期**される（`configure_file COPYONLY`＝gitattributes を貫通）。**パッチを編集したら必ず `../patches` にもコピー**し、マスターは CRLF・最新に保つこと。**同期を忘れてマスターだけ旧版に取り残されると、ホストビルドで新パッチが黙って旧版へ退行する**（Docker は container に `../patches` が無いので無関係）。
+- 姉妹6リポ（MixCompare / TinyVU / ZeroComp / ZeroEQ / ZeroLimit / TestTone）で同一機構。JUCE submodule commit が揃っていればパッチは共有可。
+
 ### AAX 署名用 PFX（Windows）
 
 `<plugin>-dev.pfx` をリポジトリ直下に配置する（`build_windows.ps1` が最初に見るパス）。`.env` の
