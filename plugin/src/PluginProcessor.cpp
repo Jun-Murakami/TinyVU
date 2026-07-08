@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Jun Murakami
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "Version.h"
+#include "util/DiagnosticLog.h"
 
 #include <memory>
 #include <vector>
@@ -12,6 +14,8 @@ TinyVUAudioProcessor::TinyVUAudioProcessor()
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       parameters(*this, nullptr, juce::Identifier("TinyVU"), createParameterLayout())
 {
+    // WebView 起動診断ログ + Linux 描画/起動緩和策（エディタ生成より前に実行）
+    wvdiag::DiagnosticLog::install(TINYVU_PRODUCT_NAME, TINYVU_VERSION_STRING);
 }
 
 TinyVUAudioProcessor::~TinyVUAudioProcessor() = default;
